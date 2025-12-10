@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Portfolio Lucena</title>
+
+  <link rel="manifest" href="manifest.json">
+
+  <!-- iOS fullscreen -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <!-- Android theme -->
+  <meta name="theme-color" content="#000000">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+    iframe {
+      width: 100vw;
+      height: 100vh;
+      border: none;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<iframe 
+  src="https://powerportal.com.br/gerados/Portfolio_Lucena_27112025-PowerBiTvTool.html"
+  allow="fullscreen">
+</iframe>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+</script>
+
+</body>
+</html>
