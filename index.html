@@ -2,8 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="500" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="refresh" content="500" /> <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#001f3f">
     
     <title>TV Lucena</title>
@@ -87,7 +86,8 @@
             width: 100vw;
             height: 100vh;
             overflow: hidden;
-            background-color: #000;
+            /* CORRIGIDO: Fundo azul escuro para evitar flash preto se houver delay */
+            background-color: #001f3f; 
         }
 
         .iframe-container iframe {
@@ -97,7 +97,7 @@
             width: 100%;
             height: 100%;
             border: none;
-            transition: opacity 0.5s ease;
+            transition: opacity 1s ease; /* Aumentei para 1s para ser mais suave */
             opacity: 0;
             z-index: 1;
         }
@@ -108,7 +108,7 @@
         }
 
         .ajuste {
-            margin-top: -6px;
+            margin-top: -8px;
             margin-left: -8px;
             width: 101% !important;
             height: 109vh !important;
@@ -197,11 +197,12 @@
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.9; } 100% { transform: scale(1); opacity: 1; } }
-        .fade { -webkit-animation: fade 1s; animation: fade 1s; }
-        @keyframes fade { from { opacity: .4; } to { opacity: 1; } }
+        
+        /* Classes de efeito */
+        .fade { /* Já tratado na transição padrão do iframe */ }
         
         .scale-up-center { animation: scale-up-center 1s cubic-bezier(0.390, 0.575, 0.565, 1.000) both; }
-        @keyframes scale-up-center { 0% { transform: scale(0.5); } 100% { transform: scale(1); } }
+        @keyframes scale-up-center { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
         .none{ display: none; }
     </style>
@@ -210,15 +211,15 @@
 
     <div id="loading-screen">
         <div class="logo-container">
-            <img src="icon-512.png" alt="Logo TV Lucena">
+            <img src="icon-512.png" alt="Logo TV Lucena" onerror="this.style.display='none'">
         </div>
         <div class="loading-text">TV Lucena</div>
         <div class="spinner"></div>
     </div>
 
     <div class="iframe-container">
-        <iframe id="powerbi-frame-1" class="ajuste active fade" src="" allowfullscreen="true"></iframe>
-        <iframe id="powerbi-frame-2" class="ajuste fade" src="" allowfullscreen="true"></iframe>
+        <iframe id="powerbi-frame-1" class="ajuste active" src="" allowfullscreen="true"></iframe>
+        <iframe id="powerbi-frame-2" class="ajuste" src="" allowfullscreen="true"></iframe>
     </div>
 
     <div id="controls-wrapper">
@@ -260,21 +261,18 @@
             });
         }
 
-        // --- LÓGICA DO CARREGAMENTO (AGORA MAIS RÁPIDA) ---
+        // --- LÓGICA DO CARREGAMENTO INICIAL ---
         window.addEventListener('load', () => {
-            // Tempo reduzido para 1000ms (1 segundo)
             setTimeout(() => {
                 const loadingScreen = document.getElementById('loading-screen');
                 loadingScreen.classList.add('hidden');
-                
-                // Remove a tela do fluxo após a transição para liberar memória
                 setTimeout(() => {
                    loadingScreen.style.display = 'none'; 
                 }, 800); 
             }, 1000); 
         });
 
-        // --- LÓGICA DO SLIDESHOW ---
+        // --- LISTA DE URLS ---
         const urls = [
             "https://app.powerbi.com/view?r=eyJrIjoiZDE0NDI2OWQtZmI1Zi00YTJlLWFiNmUtZWYwZjRhNDMzZTUxIiwidCI6IjliMjc5MzAzLWY1ZWMtNDg5OC1hMzFjLWQ4NTZlOTcwN2EzZSJ9&pageName=d939c6f9bd82a253938a&pageName=d939c6f9bd82a253938a",
             "https://app.powerbi.com/view?r=eyJrIjoiZDE0NDI2OWQtZmI1Zi00YTJlLWFiNmUtZWYwZjRhNDMzZTUxIiwidCI6IjliMjc5MzAzLWY1ZWMtNDg5OC1hMzFjLWQ4NTZlOTcwN2EzZSJ9&pageName=d939c6f9bd82a253938a&pageName=60eb471fb60124c2248a",
@@ -286,7 +284,7 @@
         let isPaused = false;
         let timer;
         let progressInterval;
-        let panelDuration = 120000;
+        let panelDuration = 120000; // Padrão 2 min
         let transitionEffect = "fade";
         let activeFrame = 1;
 
@@ -302,6 +300,7 @@
         const intervalSelector = document.getElementById("interval-selector");
         const effectSelector = document.getElementById("effect-selector");
 
+        // --- EVENT LISTENERS ---
         intervalSelector.addEventListener("change", () => {
             panelDuration = parseInt(intervalSelector.value) * 1000;
             if (!isPaused) {
@@ -341,40 +340,60 @@
             transitionEffect = effectSelector.value;
         });
 
+        // --- FUNÇÃO PRINCIPAL DE ROTAÇÃO (CORRIGIDA) ---
         function showPanel() {
             const currentFrame = activeFrame === 1 ? iframe1 : iframe2;
             const nextFrame = activeFrame === 1 ? iframe2 : iframe1;
 
-            currentFrame.className = "ajuste";
-            nextFrame.className = "ajuste";
-
+            // Carrega o próximo frame nos bastidores
             nextFrame.src = urls[(curr + 1) % urls.length];
             
-            // Só exibe o próximo slide quando ele terminar de carregar
+            // Só executa a troca quando o HTML tiver carregado
             nextFrame.onload = () => {
-                nextFrame.classList.add(transitionEffect, "active");
-                currentFrame.classList.remove("active");
+                
+                // 1. ESPERA O POWER BI RENDERIZAR OS GRÁFICOS (DELAY DE SEGURANÇA)
+                // Se a tela ainda piscar, aumente este valor (ex: de 2500 para 3500)
+                setTimeout(() => {
+                    
+                    // 2. INICIA A ANIMAÇÃO DE ENTRADA
+                    // O novo frame aparece POR CIMA do antigo
+                    nextFrame.classList.add(transitionEffect, "active");
 
-                if (!isPaused) {
-                    let start = Date.now();
-                    progressFill.style.width = "0%";
-                    clearInterval(progressInterval);
-                    progressInterval = setInterval(() => {
-                        const elapsed = Date.now() - start;
-                        const percent = Math.min((elapsed / panelDuration) * 100, 100);
-                        progressFill.style.width = percent + "%";
-                    }, 100);
+                    // 3. LIMPEZA PÓS-TRANSIÇÃO
+                    // Espera a animação de entrada terminar (1.5s) antes de esconder o antigo
+                    setTimeout(() => {
+                        currentFrame.classList.remove("active", transitionEffect);
+                        // Opcional: Limpar src do antigo para liberar memória
+                        // currentFrame.src = ""; 
+                    }, 1500);
 
-                    timer = setTimeout(() => {
+                    // --- REINICIA O CONTADOR DE TEMPO ---
+                    if (!isPaused) {
+                        let start = Date.now();
+                        progressFill.style.width = "0%";
                         clearInterval(progressInterval);
-                        curr = (curr + 1) % urls.length;
-                        activeFrame = activeFrame === 1 ? 2 : 1;
-                        showPanel();
-                    }, panelDuration);
-                }
+                        
+                        // Atualiza a barra de progresso a cada 100ms
+                        progressInterval = setInterval(() => {
+                            const elapsed = Date.now() - start;
+                            const percent = Math.min((elapsed / panelDuration) * 100, 100);
+                            progressFill.style.width = percent + "%";
+                        }, 100);
+
+                        // Agenda a próxima troca
+                        timer = setTimeout(() => {
+                            clearInterval(progressInterval);
+                            curr = (curr + 1) % urls.length;
+                            activeFrame = activeFrame === 1 ? 2 : 1;
+                            showPanel();
+                        }, panelDuration);
+                    }
+
+                }, 2500); // 2500ms = 2.5 segundos de "Buffering" visual
             };
         }
 
+        // --- TIMER DE INATIVIDADE DO MOUSE ---
         let inactivityTimeout;
         function resetInactivityTimer() {
             controlsWrapper.classList.remove("hidden");
@@ -388,6 +407,7 @@
         document.addEventListener("keydown", resetInactivityTimer);
         resetInactivityTimer();
 
+        // Inicia o slideshow
         showPanel();
     </script>
 </body>
