@@ -9,7 +9,8 @@
     <title>TV Lucena</title>
     
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="icon-192.png"> <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -63,7 +64,7 @@
 
         .loading-text {
             color: #fff;
-            font-size: 24px; /* Aumentei um pouco */
+            font-size: 24px;
             font-weight: 700;
             letter-spacing: 2px;
             text-transform: uppercase;
@@ -106,7 +107,6 @@
             z-index: 2;
         }
 
-        /* Ajuste para remover bordas do Power BI */
         .ajuste {
             margin-top: -5px;
             margin-left: -8px;
@@ -200,10 +200,8 @@
         .fade { -webkit-animation: fade 1s; animation: fade 1s; }
         @keyframes fade { from { opacity: .4; } to { opacity: 1; } }
         
-        /* Outras animações CSS (Scale Up, etc.) */
         .scale-up-center { animation: scale-up-center 1s cubic-bezier(0.390, 0.575, 0.565, 1.000) both; }
         @keyframes scale-up-center { 0% { transform: scale(0.5); } 100% { transform: scale(1); } }
-        /* Adicione as outras animações aqui se desejar */
 
         .none{ display: none; }
     </style>
@@ -217,3 +215,180 @@
         <div class="loading-text">TV Lucena</div>
         <div class="spinner"></div>
     </div>
+
+    <div class="iframe-container">
+        <iframe id="powerbi-frame-1" class="ajuste active fade" src="" allowfullscreen="true"></iframe>
+        <iframe id="powerbi-frame-2" class="ajuste fade" src="" allowfullscreen="true"></iframe>
+    </div>
+
+    <div id="controls-wrapper">
+        <div id="controls-container">
+            <button id="prevBtn" class="control-btn" title="Anterior">
+                <svg viewBox="0 0 24 24"><polygon points="11,12 18,18 18,6" /><polygon points="6,12 13,18 13,6" /></svg>
+            </button>
+            <button id="playPauseBtn" class="control-btn" title="Parar/Retomar">
+                <svg id="pauseIcon" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
+                <svg id="playIcon" viewBox="0 0 24 24" style="display: none;"><polygon points="8,5 19,12 8,19" /></svg>
+            </button>
+            <button id="nextBtn" class="control-btn" title="Próximo">
+                <svg viewBox="0 0 24 24"><polygon points="6,6 6,18 13,12" /><polygon points="11,6 11,18 18,12" /></svg>
+            </button>
+            <select id="interval-selector" title="Tempo">
+                <option value="5">5s</option>
+                <option value="15">15s</option>
+                <option value="30">30s</option>
+                <option value="60">1min</option>
+                <option value="120" selected>2min</option>
+            </select>
+            <select id="effect-selector" title="Transição">
+                <option value="fade" selected>Fade</option>
+                <option value="scale-up-center">Scale Up</option>
+            </select>
+        </div>
+        <div id="progressBar">
+            <div id="progressFill"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- PWA: REGISTRO DO SERVICE WORKER ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('SW Registrado:', reg.scope))
+                    .catch(err => console.log('SW Falhou:', err));
+            });
+        }
+
+        // --- LÓGICA DO CARREGAMENTO (AGORA MAIS RÁPIDA) ---
+        window.addEventListener('load', () => {
+            // Tempo reduzido para 1000ms (1 segundo)
+            setTimeout(() => {
+                const loadingScreen = document.getElementById('loading-screen');
+                loadingScreen.classList.add('hidden');
+                
+                // Remove a tela do fluxo após a transição para liberar memória
+                setTimeout(() => {
+                   loadingScreen.style.display = 'none'; 
+                }, 800); 
+            }, 1000); 
+        });
+
+        // --- LÓGICA DO SLIDESHOW ---
+        const urls = [
+            "https://app.powerbi.com/view?r=eyJrIjoiZDE0NDI2OWQtZmI1Zi00YTJlLWFiNmUtZWYwZjRhNDMzZTUxIiwidCI6IjliMjc5MzAzLWY1ZWMtNDg5OC1hMzFjLWQ4NTZlOTcwN2EzZSJ9&pageName=d939c6f9bd82a253938a&pageName=d939c6f9bd82a253938a",
+            "https://app.powerbi.com/view?r=eyJrIjoiZDE0NDI2OWQtZmI1Zi00YTJlLWFiNmUtZWYwZjRhNDMzZTUxIiwidCI6IjliMjc5MzAzLWY1ZWMtNDg5OC1hMzFjLWQ4NTZlOTcwN2EzZSJ9&pageName=d939c6f9bd82a253938a&pageName=60eb471fb60124c2248a",
+            "https://app.powerbi.com/view?r=eyJrIjoiZDE0NDI2OWQtZmI1Zi00YTJlLWFiNmUtZWYwZjRhNDMzZTUxIiwidCI6IjliMjc5MzAzLWY1ZWMtNDg5OC1hMzFjLWQ4NTZlOTcwN2EzZSJ9&pageName=d939c6f9bd82a253938a&pageName=f96faf406bc366968150",
+            "https://app.powerbi.com/view?r=eyJrIjoiZDE0NDI2OWQtZmI1Zi00YTJlLWFiNmUtZWYwZjRhNDMzZTUxIiwidCI6IjliMjc5MzAzLWY1ZWMtNDg5OC1hMzFjLWQ4NTZlOTcwN2EzZSJ9&pageName=d939c6f9bd82a253938a&pageName=4f587b7034665e5bd11c"
+        ];
+
+        let curr = 0;
+        let isPaused = false;
+        let timer;
+        let progressInterval;
+        let panelDuration = 120000;
+        let transitionEffect = "fade";
+        let activeFrame = 1;
+
+        const iframe1 = document.getElementById("powerbi-frame-1");
+        const iframe2 = document.getElementById("powerbi-frame-2");
+        const playPauseBtn = document.getElementById("playPauseBtn");
+        const pauseIcon = document.getElementById("pauseIcon");
+        const playIcon = document.getElementById("playIcon");
+        const progressFill = document.getElementById("progressFill");
+        const controlsWrapper = document.getElementById("controls-wrapper");
+        const prevBtn = document.getElementById("prevBtn");
+        const nextBtn = document.getElementById("nextBtn");
+        const intervalSelector = document.getElementById("interval-selector");
+        const effectSelector = document.getElementById("effect-selector");
+
+        intervalSelector.addEventListener("change", () => {
+            panelDuration = parseInt(intervalSelector.value) * 1000;
+            if (!isPaused) {
+                clearTimeout(timer);
+                clearInterval(progressInterval);
+                showPanel();
+            }
+        });
+
+        playPauseBtn.addEventListener("click", () => {
+            isPaused = !isPaused;
+            pauseIcon.style.display = isPaused ? "none" : "block";
+            playIcon.style.display = isPaused ? "block" : "none";
+            if (isPaused) {
+                clearTimeout(timer);
+                clearInterval(progressInterval);
+            } else {
+                showPanel();
+            }
+        });
+
+        prevBtn.addEventListener("click", () => {
+            clearTimeout(timer);
+            clearInterval(progressInterval);
+            curr = (curr - 1 + urls.length) % urls.length;
+            showPanel();
+        });
+
+        nextBtn.addEventListener("click", () => {
+            clearTimeout(timer);
+            clearInterval(progressInterval);
+            curr = (curr + 1) % urls.length;
+            showPanel();
+        });
+
+        effectSelector.addEventListener("change", () => {
+            transitionEffect = effectSelector.value;
+        });
+
+        function showPanel() {
+            const currentFrame = activeFrame === 1 ? iframe1 : iframe2;
+            const nextFrame = activeFrame === 1 ? iframe2 : iframe1;
+
+            currentFrame.className = "ajuste";
+            nextFrame.className = "ajuste";
+
+            nextFrame.src = urls[(curr + 1) % urls.length];
+            
+            // Só exibe o próximo slide quando ele terminar de carregar
+            nextFrame.onload = () => {
+                nextFrame.classList.add(transitionEffect, "active");
+                currentFrame.classList.remove("active");
+
+                if (!isPaused) {
+                    let start = Date.now();
+                    progressFill.style.width = "0%";
+                    clearInterval(progressInterval);
+                    progressInterval = setInterval(() => {
+                        const elapsed = Date.now() - start;
+                        const percent = Math.min((elapsed / panelDuration) * 100, 100);
+                        progressFill.style.width = percent + "%";
+                    }, 100);
+
+                    timer = setTimeout(() => {
+                        clearInterval(progressInterval);
+                        curr = (curr + 1) % urls.length;
+                        activeFrame = activeFrame === 1 ? 2 : 1;
+                        showPanel();
+                    }, panelDuration);
+                }
+            };
+        }
+
+        let inactivityTimeout;
+        function resetInactivityTimer() {
+            controlsWrapper.classList.remove("hidden");
+            clearTimeout(inactivityTimeout);
+            inactivityTimeout = setTimeout(() => {
+                controlsWrapper.classList.add("hidden");
+            }, 5000);
+        }
+
+        document.addEventListener("mousemove", resetInactivityTimer);
+        document.addEventListener("keydown", resetInactivityTimer);
+        resetInactivityTimer();
+
+        showPanel();
+    </script>
+</body>
+</html>
