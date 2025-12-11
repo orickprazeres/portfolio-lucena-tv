@@ -1,26 +1,219 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#000000">
-    <link rel="manifest" href="manifest.json" />
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js');
-        }
-    </script>
+    <meta http-equiv="refresh" content="500" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#001f3f">
+    
+    <title>TV Lucena</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon-192.png"> <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TV Lucena">
+
     <style>
-        body { margin: 0; padding: 0; background: black; overflow: hidden; }
-        iframe {
-            position: fixed; top: 0; left: 0;
-            width: 100vw; height: 100vh;
+        /* --- RESET BÁSICO --- */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            overflow: hidden;
+            font-family: 'Segoe UI', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* --- TELA DE CARREGAMENTO (LOADING) --- */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(-45deg, #001f3f, #003366, #005b96, #001f3f);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite; 
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.8s ease-out, visibility 0.8s;
+        }
+
+        #loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .logo-container img {
+            width: 140px;
+            height: auto;
+            margin-bottom: 25px;
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
+            animation: pulse 2.5s infinite ease-in-out;
+        }
+
+        .loading-text {
+            color: #fff;
+            font-size: 24px; /* Aumentei um pouco */
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .spinner {
+            width: 35px;
+            height: 35px;
+            border: 3px solid rgba(255,255,255,0.2);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        /* --- CARROSSEL --- */
+        .iframe-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #000;
+        }
+
+        .iframe-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            transition: opacity 0.5s ease;
+            opacity: 0;
+            z-index: 1;
+        }
+
+        .iframe-container iframe.active {
+            opacity: 1;
+            z-index: 2;
+        }
+
+        /* Ajuste para remover bordas do Power BI */
+        .ajuste {
+            margin-top: -5px;
+            margin-left: -8px;
+            width: 101% !important;
+            height: 109vh !important;
             border: none;
         }
+
+        /* --- CONTROLES --- */
+        #controls-wrapper {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            opacity: 1; 
+            transition: opacity 0.5s ease;
+        }
+
+        #controls-wrapper.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #controls-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .control-btn {
+            width: 40px;
+            height: 40px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin: 0 4px;
+            transition: background-color 0.2s;
+        }
+        
+        .control-btn:hover {
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+
+        .control-btn svg {
+            fill: white;
+            width: 20px;
+            height: 20px;
+        }
+
+        select {
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 4px 6px;
+            margin-left: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            height: 40px;
+        }
+
+        #progressBar {
+            width: calc(40px * 3 + 8px * 2);
+            height: 8px;
+            background-color: rgba(0, 0, 0, 0.3); 
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+            margin-left: 4px;
+            backdrop-filter: blur(2px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #progressFill {
+            height: 100%;
+            width: 0%;
+            background-color: rgba(0, 255, 0, 0.6);
+            transition: width 0.1s linear;
+        }
+
+        /* --- ANIMAÇÕES --- */
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.9; } 100% { transform: scale(1); opacity: 1; } }
+        .fade { -webkit-animation: fade 1s; animation: fade 1s; }
+        @keyframes fade { from { opacity: .4; } to { opacity: 1; } }
+        
+        /* Outras animações CSS (Scale Up, etc.) */
+        .scale-up-center { animation: scale-up-center 1s cubic-bezier(0.390, 0.575, 0.565, 1.000) both; }
+        @keyframes scale-up-center { 0% { transform: scale(0.5); } 100% { transform: scale(1); } }
+        /* Adicione as outras animações aqui se desejar */
+
+        .none{ display: none; }
     </style>
-    <title>Dashboard</title>
 </head>
 <body>
-<iframe src="https://app.powerbi.com/embed?r=eyJrIjoiZDE0NDI2OWQtZmI1Zi00YTJlLWFiNmUtZWYwZjRhNDMzZTUxIiwidCI6IjliMjc5MzAzLWY1ZWMtNDg5OC1hMzFjLWQ4NTZlOTcwN2EzZSJ9"></iframe>
-</body>
-</html>
+
+    <div id="loading-screen">
+        <div class="logo-container">
+            <img src="icon-512.png" alt="Logo TV Lucena">
+        </div>
+        <div class="loading-text">TV Lucena</div>
+        <div class="spinner"></div>
+    </div>
